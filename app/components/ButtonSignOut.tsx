@@ -1,23 +1,23 @@
-"use client"
-import { signOut } from "next-auth/react";
-import { Button } from "@/components/ui/button";
+"use client";
+import { auth } from "../firebase/config"; // Importez l'instance d'authentification depuis config
+import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { LogOut} from 'lucide-react';
+import { Button } from "@/components/ui/button";
 
-export default function ButtonSignOut() {
+const LogoutButton = () => {
+  const router = useRouter();
 
-  const  router = useRouter()
+  const handleLogout = async () => {
+    try {
+      await signOut(auth); // Déconnexion de Firebase Auth
+      console.log("User has been logged out");
+      router.push("/"); // Redirige l'utilisateur vers la page d'accueil
+    } catch (error) {
+      console.error("Error logging out: ", error);
+    }
+  };
 
-  const handleSignOut = async () => {
-    await signOut({ redirect: false })
-    router.push('/')
-  }
+  return <Button onClick={handleLogout}>Sign Out</Button>;
+};
 
-  return (
-    <div className="flex items-center justify-end mb-2 mt-3 lg:mt-0 p-3 ">       
-      <Button onClick={handleSignOut} className="bg-orange-500 hover:bg-orange-600 text-white">
-      <LogOut />
-      </Button>  
-    </div>
-  )
-}
+export default LogoutButton;

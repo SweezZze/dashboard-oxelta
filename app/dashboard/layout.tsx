@@ -1,18 +1,16 @@
-import DashboardNav from "@/app/components/DashboardNav"
-import ButtonSignOut from "@/app/components/ButtonSignOut"
+import { ProtectedRoute } from "@/app/components/auth/protected-route";
+import DashboardNav from "@/app/components/DashboardNav";
+import { ReactNode } from "react";
 
-export default async function DashboardLayout({ children }: Readonly<{
-        children: React.ReactNode;
-      }>) {
-        return (
-         <section className="max-w[2000px] mx-auto md:flex md:items-center md:gap-4 h-screen w-full mt-2 p-2">
-            <DashboardNav />
-            
-            <div className="w-full h-full">
-                <ButtonSignOut />
-                {children} 
+export default function DashboardLayout({ children }: { children: ReactNode }) {
+  return (
+    <ProtectedRoute>
+      <section className="max-w-[2000px] mx-auto flex flex-col md:flex-row h-screen w-full p-2">
+        <div className="md:w-64 md:min-h-screen">
+          <DashboardNav />
         </div>
-
-         </section>
-        )
+        <main className="flex-1 p-4 md:p-6">{children}</main>
+      </section>
+    </ProtectedRoute>
+  );
 }

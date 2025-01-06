@@ -32,7 +32,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <SessionWrapper>
-        <ThemeProvider
+          <ThemeProvider
             attribute="class"
             defaultTheme="system"
             enableSystem
@@ -40,7 +40,7 @@ export default function RootLayout({
           >
             <Nav />
             {children}
-        </ThemeProvider>
+          </ThemeProvider>
         </SessionWrapper>
       </body>
     </html>
