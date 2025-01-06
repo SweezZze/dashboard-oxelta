@@ -3,6 +3,7 @@
 import { auth } from "@/app/firebase/config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FirebaseError } from "firebase/app";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -45,24 +46,34 @@ export const SignIn = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to create session");
+        setError(data.error || "Failed to create session");
+        return;
       }
 
       // Force a hard navigation to ensure middleware runs
       window.location.href = "/dashboard/home";
-    } catch (error: any) {
-      console.error("Error signing in:", error);
-
-      if (error.code === "auth/user-not-found") {
-        router.push("/error");
-        return;
+    } catch (error) {
+      // Type guard to ensure error is FirebaseError
+      if (error instanceof FirebaseError) {
+        switch (error.code) {
+          case "auth/invalid-credential":
+            router.push("/error");
+            break;
+          case "auth/user-not-found":
+            router.push("/error");
+            break;
+          case "auth/wrong-password":
+            setError("Incorrect password.");
+            break;
+          case "auth/too-many-requests":
+            setError("Too many failed attempts. Please try again later.");
+            break;
+          default:
+            setError("An error occurred during sign-in. Please try again.");
+        }
+      } else {
+        setError("An unexpected error occurred.");
       }
-
-      setError(
-        error.code === "auth/wrong-password"
-          ? "Invalid password"
-          : "Failed to sign in. Please check your credentials."
-      );
     } finally {
       setIsLoading(false);
     }
