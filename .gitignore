@@ -4,7 +4,7 @@
 /prompts
 prompt*
 /config
-/config/flappyoxo-firebase-adminsdk-req64-f55e3b807b.json
+flappy*
 # dependencies
 /node_modules
 /.pnp

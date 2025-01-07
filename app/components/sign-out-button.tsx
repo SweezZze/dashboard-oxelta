@@ -46,12 +46,12 @@ export const SignOutButton = ({ className = "" }: Props) => {
     >
       {isSigningOut ? (
         <>
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader2 className="w-4 h-4 animate-spin" />
           <span>Signing out...</span>
         </>
       ) : (
         <>
-          <LogOut className="h-4 w-4" />
+          <LogOut className="w-4 h-4" />
           <span>Sign Out</span>
         </>
       )}

@@ -1,4 +1,4 @@
-import { initializeFirebaseAdmin } from "@/lib/firebase-admin";
+import { initializeFirebaseAdmin } from "@/lib/initializeFirebaseAdmin";
 import {
   DocumentData,
   getFirestore,

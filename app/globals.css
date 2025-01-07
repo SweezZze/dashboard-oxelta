@@ -130,10 +130,6 @@ body {
   color: hsl(var(--card-foreground));
 }
 
-.react-calendar__month-view__days__day--weekend {
-  color: hsl(var(--destructive));
-}
-
 .react-calendar__month-view__days__day--neighboringMonth {
   color: hsl(var(--muted-foreground));
 }
@@ -194,4 +190,10 @@ body {
 
 .react-calendar--selectRange .react-calendar__tile--hover {
   background-color: hsl(var(--accent));
+}
+
+/* Style pour la semaine sélectionnée */
+.selected-week {
+  background-color: hsl(var(--primary) / 0.2);
+  color: hsl(var(--primary-foreground));
 }

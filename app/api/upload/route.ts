@@ -1,31 +1,40 @@
-import { adminStorage } from "@/lib/firebase-admin";
-import { NextResponse } from "next/server";
+import { storage } from "@/lib/firebase-admin";
+import { NextRequest, NextResponse } from "next/server";
+import sharp from "sharp";
 
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const formData = await request.formData();
-    const file = formData.get("file") as File;
+    const formData = await req.formData();
+    const file = formData.get("image") as File;
 
-    const bucket = adminStorage.bucket();
-    const fileName = `publications/${Date.now()}-${file.name}`;
-    const fileRef = bucket.file(fileName);
+    if (!file) {
+      return NextResponse.json({ error: "No image uploaded" }, { status: 400 });
+    }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    await fileRef.save(buffer, {
-      contentType: file.type,
-      public: true,
+    const compressedBuffer = await sharp(buffer)
+      .jpeg({ quality: 80 })
+      .toBuffer();
+
+    const fileName = `images_pub/${Date.now()}_${file.name}`;
+    const fileRef = storage.bucket().file(fileName);
+
+    await fileRef.save(compressedBuffer, {
+      contentType: "image/jpeg",
+      metadata: {
+        contentType: "image/jpeg",
+        cacheControl: "public, max-age=31536000",
+      },
     });
 
-    const [url] = await fileRef.getSignedUrl({
-      action: "read",
-      expires: "03-01-2500",
+    return NextResponse.json({
+      success: true,
+      imageLinks: [fileName],
     });
-
-    return NextResponse.json({ success: true, url });
   } catch (error) {
-    console.error("Erreur:", error);
+    console.error("Error uploading:", error);
     return NextResponse.json(
-      { success: false, error: "Erreur lors du téléchargement" },
+      { error: "Failed to upload image" },
       { status: 500 }
     );
   }
