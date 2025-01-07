@@ -1,16 +1,6 @@
 "use client";
 
-import { db } from "@/app/firebase/config";
 import "@/app/globals.css";
-import {
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  query,
-  setDoc,
-  where,
-} from "firebase/firestore";
 import { useEffect, useState } from "react";
 import Calendar from "react-calendar";
 import { toast } from "sonner";
@@ -78,28 +68,19 @@ export default function PubPage() {
 
   const fetchWeekImages = async (weekNum: number) => {
     try {
-      const q = query(
-        collection(db, "gameImages"),
-        where("weekNumber", "==", weekNum)
-      );
-      const querySnapshot = await getDocs(q);
-      const images = querySnapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          imageUrl: data.imageUrl,
-          format: data.format,
-          height: data.height,
-          width: data.width,
-          weekNumber: data.weekNumber,
-          dimensions: data.dimensions,
-          createdAt: data.createdAt?.toDate() || new Date(),
-        } as ImageData;
-      });
-      setWeekImages(images);
+      const response = await fetch(`/api/game-images?weekNumber=${weekNum}`);
+      const data = await response.json();
+      if (data.images) {
+        setWeekImages(
+          data.images.map((image: ImageData) => ({
+            ...image,
+            createdAt: new Date(image.createdAt),
+          }))
+        );
+      }
     } catch (error) {
       console.error("Error fetching images:", error);
-      alert("Error loading images. Please try again.");
+      toast.error("Error loading images. Please try again.");
     }
   };
 
@@ -133,7 +114,6 @@ export default function PubPage() {
     e.preventDefault();
     try {
       const dimensions = DIMENSIONS[`${imageData.height}-${imageData.width}`];
-
       if (!dimensions) {
         toast.error("Invalid dimensions");
         return;
@@ -142,7 +122,7 @@ export default function PubPage() {
       const imageUrlPattern = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i;
       if (!imageUrlPattern.test(imageData.imageUrl)) {
         toast.error(
-          "Please enter a valid image URL (must end with .jpg, .png, .gif, or .webp)"
+          "Please enter a valid image URL (must end with .jpg, .png)"
         );
         return;
       }
@@ -155,7 +135,8 @@ export default function PubPage() {
           );
           return;
         }
-      } catch (error) {
+      } catch (error: unknown) {
+        console.error("URL verification error:", error);
         toast.error(
           "Could not verify the image URL. Please check the URL and try again."
         );
@@ -164,11 +145,21 @@ export default function PubPage() {
 
       const customDocId = `week-${imageData.weekNumber}-h-${imageData.height}-l-${imageData.width}`;
 
-      await setDoc(doc(db, "gameImages", customDocId), {
-        ...imageData,
-        dimensions,
-        createdAt: new Date(),
+      const response = await fetch("/api/game-images", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customDocId,
+          imageData: {
+            ...imageData,
+            dimensions,
+          },
+        }),
       });
+
+      if (!response.ok) throw new Error("Failed to save image");
 
       if (selectedWeek) {
         await fetchWeekImages(selectedWeek);
@@ -183,15 +174,16 @@ export default function PubPage() {
         weekNumber: selectedWeek || 0,
         id: "",
       });
+
       toast.success("Image saved successfully!", {
         description: `${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
         action: {
           label: "Undo",
           onClick: async () => {
             try {
-              // Delete the document instead of setting empty object
-              await deleteDoc(doc(db, "gameImages", customDocId));
-
+              await fetch(`/api/game-images?docId=${customDocId}`, {
+                method: "DELETE",
+              });
               if (selectedWeek) {
                 await fetchWeekImages(selectedWeek);
               }
@@ -235,7 +227,12 @@ export default function PubPage() {
 
   const handleDeleteImage = async (imageId: string) => {
     try {
-      await deleteDoc(doc(db, "gameImages", imageId));
+      const response = await fetch(`/api/game-images?docId=${imageId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) throw new Error("Failed to delete image");
+
       toast.success("Image deleted successfully!");
       if (selectedWeek) {
         await fetchWeekImages(selectedWeek);
@@ -248,29 +245,29 @@ export default function PubPage() {
 
   return (
     <div className="h-[calc(100vh-80px)] overflow-y-auto bg-background">
-      <div className="max-w-7xl mx-auto p-4 md:p-8">
-        <h1 className="text-3xl font-bold text-foreground mb-8">
+      <div className="p-4 mx-auto max-w-7xl md:p-8">
+        <h1 className="mb-8 text-3xl font-bold text-foreground">
           Pub Management
         </h1>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pb-8">
+        <div className="grid grid-cols-1 gap-8 pb-8 lg:grid-cols-2">
           {/* Colonne de gauche : Calendrier et formulaire */}
           <div className="space-y-6">
-            <div className="bg-card rounded-xl shadow-sm overflow-hidden border">
+            <div className="overflow-hidden border shadow-sm bg-card rounded-xl">
               <div className="p-6">
-                <h2 className="text-xl font-semibold text-card-foreground mb-4">
+                <h2 className="mb-4 text-xl font-semibold text-card-foreground">
                   Select Week
                 </h2>
                 <Calendar
                   onChange={(value: any) => handleDateSelect(value as Date)}
-                  className="w-full border-none bg-card text-card-foreground rounded-lg"
+                  className="w-full border-none rounded-lg bg-card text-card-foreground"
                   tileClassName={tileClassName}
                 />
               </div>
             </div>
 
             {showForm && (
-              <div className="bg-card rounded-xl shadow-sm p-6 border">
-                <h2 className="text-xl font-semibold text-card-foreground mb-4">
+              <div className="p-6 border shadow-sm bg-card rounded-xl">
+                <h2 className="mb-4 text-xl font-semibold text-card-foreground">
                   Add Image for Week {selectedWeek}
                 </h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -284,7 +281,7 @@ export default function PubPage() {
                       onChange={(e) =>
                         setImageData({ ...imageData, imageUrl: e.target.value })
                       }
-                      className="mt-1 block w-full rounded-md border bg-input text-input-foreground shadow-sm focus:border-ring focus:ring-ring"
+                      className="block w-full mt-1 border rounded-md shadow-sm bg-input text-input-foreground focus:border-ring focus:ring-ring"
                       required
                     />
                   </div>
@@ -302,7 +299,7 @@ export default function PubPage() {
                             format: e.target.value as "PNG" | "JPEG",
                           })
                         }
-                        className="mt-1 block w-full rounded-md border bg-input text-input-foreground shadow-sm focus:border-ring focus:ring-ring"
+                        className="block w-full mt-1 border rounded-md shadow-sm bg-input text-input-foreground focus:border-ring focus:ring-ring"
                       >
                         <option value="PNG">PNG</option>
                         <option value="JPEG">JPEG</option>
@@ -321,7 +318,7 @@ export default function PubPage() {
                             height: Number(e.target.value) as 1 | 2 | 3,
                           })
                         }
-                        className="mt-1 block w-full rounded-md border bg-input text-input-foreground shadow-sm focus:border-ring focus:ring-ring"
+                        className="block w-full mt-1 border rounded-md shadow-sm bg-input text-input-foreground focus:border-ring focus:ring-ring"
                       >
                         {[1, 2, 3].map((num) => (
                           <option key={num} value={num}>
@@ -351,7 +348,7 @@ export default function PubPage() {
                               | 8,
                           })
                         }
-                        className="mt-1 block w-full rounded-md border bg-input text-input-foreground shadow-sm focus:border-ring focus:ring-ring"
+                        className="block w-full mt-1 border rounded-md shadow-sm bg-input text-input-foreground focus:border-ring focus:ring-ring"
                       >
                         {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
                           <option key={num} value={num}>
@@ -362,7 +359,7 @@ export default function PubPage() {
                     </div>
                   </div>
 
-                  <div className="bg-muted rounded-md p-4">
+                  <div className="p-4 rounded-md bg-muted">
                     <p className="text-sm text-muted-foreground">
                       Selected dimensions:{" "}
                       {DIMENSIONS[`${imageData.height}-${imageData.width}`]
@@ -376,7 +373,7 @@ export default function PubPage() {
 
                   <button
                     type="submit"
-                    className="w-full bg-primary text-primary-foreground py-2 px-4 rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-colors"
+                    className="w-full px-4 py-2 transition-colors rounded-md bg-primary text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                   >
                     Save Image
                   </button>
@@ -386,8 +383,8 @@ export default function PubPage() {
           </div>
 
           {/* Colonne de droite : Liste des images */}
-          <div className="bg-card rounded-xl shadow-sm p-6 border">
-            <h2 className="text-xl font-semibold text-card-foreground mb-4">
+          <div className="p-6 border shadow-sm bg-card rounded-xl">
+            <h2 className="mb-4 text-xl font-semibold text-card-foreground">
               {selectedWeek
                 ? `Images for Week ${selectedWeek}`
                 : "Select a week to view images"}
@@ -397,7 +394,7 @@ export default function PubPage() {
               {weekImages.map((image, index) => (
                 <div
                   key={index}
-                  className="border rounded-lg p-4 hover:bg-accent transition-colors"
+                  className="p-4 transition-colors border rounded-lg hover:bg-accent"
                 >
                   <div className="flex items-center justify-between space-x-4">
                     <div className="flex items-center space-x-4">
@@ -405,7 +402,7 @@ export default function PubPage() {
                         <img
                           src={image.imageUrl}
                           alt={`Week ${image.weekNumber} image`}
-                          className="h-20 w-20 object-cover rounded"
+                          className="object-cover w-20 h-20 rounded"
                         />
                       </div>
                       <div className="flex-1">
@@ -423,7 +420,7 @@ export default function PubPage() {
                     </div>
                     <button
                       onClick={() => handleDeleteImage(image.id)}
-                      className="p-2 text-destructive hover:bg-destructive hover:text-destructive-foreground rounded-md transition-colors"
+                      className="p-2 transition-colors rounded-md text-destructive hover:bg-destructive hover:text-destructive-foreground"
                       title="Delete image"
                     >
                       <svg
@@ -449,7 +446,7 @@ export default function PubPage() {
               ))}
 
               {weekImages.length === 0 && selectedWeek && (
-                <p className="text-muted-foreground text-center py-4">
+                <p className="py-4 text-center text-muted-foreground">
                   No images found for this week
                 </p>
               )}

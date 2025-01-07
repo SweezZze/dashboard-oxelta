@@ -36,11 +36,6 @@ You are an expert in TypeScript, Node.js, Next.js App Router, React, Shadcn UI, 
 - Use dynamic loading for non-critical components.
 - Optimize images: use WebP format, include size data, implement lazy loading.
 
-**Database Querying & Data Model Creation**
-
-- Use Prisma sdk for query database.
-- For data model, read the .prisma files.
-
 **Key Conventions**
 
 - Use 'nuqs' for URL search parameter state management.
