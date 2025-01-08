@@ -1,14 +1,6 @@
-import { initializeFirebaseAdmin } from "@/lib/initializeFirebaseAdmin";
-import {
-  DocumentData,
-  getFirestore,
-  QueryDocumentSnapshot,
-} from "firebase-admin/firestore";
-import { NextRequest, NextResponse } from "next/server";
+import { DocumentData, QueryDocumentSnapshot } from "firebase-admin/firestore";
+import { NextResponse } from "next/server";
 import { adminDb } from "../../lib/firebase-admin";
-
-// Initialisation de Firebase Admin
-initializeFirebaseAdmin();
 
 // Define an interface for the image data
 interface ImageData {
@@ -28,6 +20,7 @@ export async function GET(request: Request) {
     const weekNumber = searchParams.get("weekNumber");
 
     if (!weekNumber) {
+      console.error("Week number is missing");
       return NextResponse.json(
         {
           success: false,
@@ -43,6 +36,7 @@ export async function GET(request: Request) {
     const snapshot = await query.get();
 
     if (snapshot.empty) {
+      console.log("No images found for week number:", weekNumber);
       return NextResponse.json({
         success: true,
         images: [],
@@ -64,6 +58,8 @@ export async function GET(request: Request) {
         };
       }
     );
+
+    console.log("Fetched images:", images);
 
     return NextResponse.json({
       success: true,
@@ -101,57 +97,6 @@ export async function POST(request: Request) {
       {
         success: false,
         error: "Failed to save image",
-      },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { docId } = body;
-
-    // Validation de base
-    if (!docId || typeof docId !== "string") {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Document ID est requis et doit être une chaîne",
-        },
-        { status: 400 }
-      );
-    }
-
-    const firestore = getFirestore();
-    const imageRef = firestore.collection("game-images").doc(docId);
-
-    try {
-      // Suppression du document Firestore
-      await imageRef.delete();
-
-      return NextResponse.json({
-        success: true,
-        message: "Image supprimée avec succès",
-      });
-    } catch (deleteError) {
-      console.error("Erreur de suppression Firestore:", deleteError);
-
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Impossible de supprimer l'image",
-        },
-        { status: 500 }
-      );
-    }
-  } catch (error) {
-    console.error("Erreur lors de la suppression de l'image:", error);
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Erreur inattendue",
       },
       { status: 500 }
     );
