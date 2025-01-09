@@ -321,7 +321,8 @@ export default function PubPage() {
                           company_name: e.target.value,
                         })
                       }
-                      className="block w-full mt-1 border rounded-md shadow-sm bg-input text-input-foreground focus:border-ring focus:ring-ring"
+                      className="block w-full pl-2 mt-1 border rounded-md shadow-sm bg-input text-input-foreground focus:border-ring focus:ring-ring"
+                      placeholder="Enter company name"
                       required
                     />
                   </div>
@@ -446,6 +447,7 @@ export default function PubPage() {
           </div>
         </div>
       </div>
+      <div className="h-8"></div> {/* Spacer of 32px */}
     </div>
   );
 }

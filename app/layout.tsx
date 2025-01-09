@@ -41,6 +41,11 @@ export default function RootLayout({
           {children}
         </ThemeProvider>
         <Toaster />
+        {typeof window !== "undefined" && (
+          <footer className="fixed bottom-0 w-full py-2 text-sm text-center text-gray-500 border-t border-gray-200">
+            &copy; 2024 Oxelta, All rights reserved
+          </footer>
+        )}
       </body>
     </html>
   );
